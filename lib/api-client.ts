@@ -15,7 +15,17 @@ export class ApiClient {
     // Try to get token from localStorage if available
     if (typeof window !== 'undefined') {
       this.token = localStorage.getItem('auth_token')
+      // Validate token format (basic check)
+      if (this.token && !this.isValidTokenFormat(this.token)) {
+        this.token = null
+        localStorage.removeItem('auth_token')
+      }
     }
+  }
+
+  private isValidTokenFormat(token: string): boolean {
+    // Basic JWT format validation (should have 3 parts separated by dots)
+    return token.split('.').length === 3 && token.length > 20
   }
 
   setToken(token: string | null) {

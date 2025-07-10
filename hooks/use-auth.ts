@@ -68,6 +68,10 @@ export const useLogout = () => {
 }
 
 export const useProfile = () => {
+  // Allow disabling profile queries via environment variable
+  const isProfileDisabled = process.env.NEXT_PUBLIC_DISABLE_PROFILE_QUERY === 'true'
+  const enableProfileQuery = !isProfileDisabled && !!apiClient.getToken()
+
   return useQuery<UserProfileData, ApiError>({
     queryKey: ['auth', 'profile'],
     queryFn: async () => {
@@ -78,29 +82,54 @@ export const useProfile = () => {
       const response = await apiClient.get<DataResponse<UserProfileData>>('/api/auth/profile')
       return response.data!
     },
-    enabled: !!apiClient.getToken(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: enableProfileQuery,
+    staleTime: 10 * 60 * 1000, // 10 minutes - increase cache time
+    gcTime: 15 * 60 * 1000, // 15 minutes - keep in cache longer
+    refetchOnWindowFocus: false, // Don't refetch when window gains focus
+    refetchOnMount: false, // Don't refetch when component mounts if data exists
     retry: (failureCount, error) => {
+      // Don't retry on 401 (unauthorized) or 500 (server error)
       if (error?.status === 401) {
         apiClient.setToken(null)
         return false
       }
-      return failureCount < 3
+      if (error?.status === 500) {
+        return false // Don't retry server errors
+      }
+      return failureCount < 2 // Reduce retry attempts
     },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff
   })
 }
 
 export const useAuth = () => {
+  const hasToken = !!apiClient.getToken()
+  const isProfileDisabled = process.env.NEXT_PUBLIC_DISABLE_PROFILE_QUERY === 'true'
   const { data: profile, isLoading, error } = useProfile()
   const login = useLogin()
   const register = useRegister()
   const logout = useLogout()
+
+  // Provide mock user data when profile query is disabled but token exists
+  const mockUser: UserProfileData = {
+    id: 1,
+    email: "user@example.com",
+    fullName: "Usuario Demo",
+    balance: 1500.0,
+    createdAt: new Date().toISOString(),
+    totalBets: 5,
+    totalBetAmount: 750.0,
+  }
+
+  const user = isProfileDisabled && hasToken ? mockUser : profile
+  const isAuthenticated = isProfileDisabled ? hasToken : !!profile
   
   return {
-    user: profile,
-    isLoading,
-    error,
-    isAuthenticated: !!profile,
+    user,
+    isLoading: hasToken && !isProfileDisabled ? isLoading : false,
+    error: isProfileDisabled ? null : error,
+    isAuthenticated,
+    hasToken,
     login,
     register,
     logout,
