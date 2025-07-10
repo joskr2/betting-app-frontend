@@ -54,11 +54,27 @@ export const useLogout = () => {
   
   return useMutation<DataResponse<any>, ApiError, void>({
     mutationFn: async () => {
-      const response = await apiClient.post<DataResponse<any>>('/api/auth/logout')
-      apiClient.setToken(null)
-      return response
+      try {
+        const response = await apiClient.post<DataResponse<any>>('/api/auth/logout')
+        return response
+      } catch (error) {
+        // Even if API call fails, we still want to logout locally
+        console.warn('Logout API call failed, but proceeding with local logout')
+        return { success: true, message: 'Logged out locally', timestamp: new Date().toISOString() }
+      } finally {
+        // Always clear token regardless of API success/failure
+        apiClient.setToken(null)
+      }
     },
     onSuccess: () => {
+      queryClient.setQueryData(['auth', 'profile'], null)
+      queryClient.removeQueries({ queryKey: ['auth'] })
+      queryClient.removeQueries({ queryKey: ['bets'] })
+      queryClient.removeQueries({ queryKey: ['events'] })
+    },
+    onError: () => {
+      // Force cleanup even on error
+      apiClient.setToken(null)
       queryClient.setQueryData(['auth', 'profile'], null)
       queryClient.removeQueries({ queryKey: ['auth'] })
       queryClient.removeQueries({ queryKey: ['bets'] })
@@ -110,8 +126,8 @@ export const useAuth = () => {
   const register = useRegister()
   const logout = useLogout()
 
-  // Provide mock user data when profile query is disabled but token exists
-  const mockUser: UserProfileData = {
+  // Only provide mock user data when profile query is disabled AND token exists
+  const mockUser: UserProfileData | null = (isProfileDisabled && hasToken) ? {
     id: 1,
     email: "user@example.com",
     fullName: "Usuario Demo",
@@ -119,10 +135,22 @@ export const useAuth = () => {
     createdAt: new Date().toISOString(),
     totalBets: 5,
     totalBetAmount: 750.0,
-  }
+  } : null
 
-  const user = isProfileDisabled && hasToken ? mockUser : profile
-  const isAuthenticated = isProfileDisabled ? hasToken : !!profile
+  const user = isProfileDisabled ? mockUser : profile
+  const isAuthenticated = isProfileDisabled ? !!mockUser : !!profile
+
+  // Add debugging info
+  if (typeof window !== 'undefined') {
+    console.log('Auth Debug:', {
+      hasToken,
+      isProfileDisabled,
+      mockUser: !!mockUser,
+      profile: !!profile,
+      isAuthenticated,
+      tokenInStorage: !!localStorage.getItem('auth_token')
+    })
+  }
   
   return {
     user,

@@ -67,7 +67,7 @@ export function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={logout} className="flex items-center text-red-600">
+                    <DropdownMenuItem onClick={() => logout.mutate()} className="flex items-center text-red-600">
                       <LogOut className="mr-2 h-4 w-4" />
                       Cerrar Sesión
                     </DropdownMenuItem>
@@ -132,7 +132,7 @@ export function Navbar() {
                   </Link>
                   <button
                     onClick={() => {
-                      logout()
+                      logout.mutate()
                       setIsMobileMenuOpen(false)
                     }}
                     className="block w-full text-left px-2 py-2 text-red-600 hover:bg-gray-100 rounded"

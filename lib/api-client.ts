@@ -43,6 +43,15 @@ export class ApiClient {
     return this.token
   }
 
+  // Force clear all auth data (for debugging)
+  forceLogout(): void {
+    this.token = null
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('user') // Clear old format too
+    }
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
