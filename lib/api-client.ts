@@ -73,7 +73,15 @@ export class ApiClient {
     }
 
     try {
+      console.log('🌐 API Request:', { method: config.method || 'GET', url, hasToken: !!this.token })
       const response = await fetch(url, config)
+      
+      console.log('📥 API Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url,
+        headers: Object.fromEntries(response.headers.entries())
+      })
       
       if (!response.ok) {
         let errorData: any
@@ -108,10 +116,13 @@ export class ApiClient {
 
       // Handle empty responses
       if (response.status === 204 || response.headers.get('content-length') === '0') {
+        console.log('📄 Empty response (204 or content-length 0)')
         return {} as T
       }
 
-      return await response.json()
+      const jsonResponse = await response.json()
+      console.log('📊 Parsed JSON Response:', jsonResponse)
+      return jsonResponse
     } catch (error) {
       if (error instanceof TypeError) {
         throw {

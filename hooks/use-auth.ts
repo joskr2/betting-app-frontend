@@ -92,11 +92,30 @@ export const useProfile = () => {
     queryKey: ['auth', 'profile'],
     queryFn: async () => {
       const token = apiClient.getToken()
+      console.log('🔑 Profile Query - Token:', token ? 'EXISTS' : 'NULL')
+      
       if (!token) {
         throw new Error('No authentication token found')
       }
+      
+      console.log('🚀 Making profile request to /api/auth/profile')
       const response = await apiClient.get<DataResponse<UserProfileData>>('/api/auth/profile')
-      return response.data!
+      
+      console.log('📡 Profile API Response:', {
+        success: response.success,
+        message: response.message,
+        timestamp: response.timestamp,
+        data: response.data,
+        fullResponse: response
+      })
+      
+      if (!response.data) {
+        console.error('❌ Profile response data is null/undefined')
+        throw new Error('Profile data is missing in response')
+      }
+      
+      console.log('✅ Profile data extracted:', response.data)
+      return response.data
     },
     enabled: enableProfileQuery,
     staleTime: 10 * 60 * 1000, // 10 minutes - increase cache time
@@ -104,17 +123,27 @@ export const useProfile = () => {
     refetchOnWindowFocus: false, // Don't refetch when window gains focus
     refetchOnMount: false, // Don't refetch when component mounts if data exists
     retry: (failureCount, error) => {
+      console.log('🔄 Profile query retry attempt:', failureCount, 'Error:', error)
+      
       // Don't retry on 401 (unauthorized) or 500 (server error)
       if (error?.status === 401) {
+        console.log('🚫 401 error - clearing token')
         apiClient.setToken(null)
         return false
       }
       if (error?.status === 500) {
+        console.log('🚫 500 error - not retrying')
         return false // Don't retry server errors
       }
       return failureCount < 2 // Reduce retry attempts
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff
+    onError: (error) => {
+      console.error('❌ Profile query error:', error)
+    },
+    onSuccess: (data) => {
+      console.log('✅ Profile query success:', data)
+    }
   })
 }
 
