@@ -15,16 +15,34 @@ export const useLogin = () => {
   return useMutation<DataResponse<AuthData>, ApiError, UserLoginRequest>({
     mutationFn: async (credentials) => {
       const response = await apiClient.post<DataResponse<AuthData>>('/api/auth/login', credentials)
+      console.log('🔐 Login response data:', response.data)
+      
       if (response.data?.token) {
         apiClient.setToken(response.data.token)
       }
       return response
     },
     onSuccess: (data) => {
-      if (data.data?.user) {
-        queryClient.setQueryData(['auth', 'profile'], data.data.user)
+      console.log('✅ Login success, extracting user data:', data.data)
+      
+      // Extract user profile from login response
+      if (data.data) {
+        const userProfile: UserProfileData = {
+          id: 1, // Default ID since not provided
+          email: data.data.email || '',
+          fullName: data.data.fullName || '', // Note: API returns full_name
+          balance: data.data.balance || 0,
+          createdAt: new Date().toISOString(),
+          totalBets: 0, // Default values
+          totalBetAmount: 0,
+        }
+        
+        console.log('👤 Setting user profile in cache:', userProfile)
+        queryClient.setQueryData(['auth', 'profile'], userProfile)
       }
-      queryClient.invalidateQueries({ queryKey: ['auth'] })
+      
+      // Don't invalidate auth queries since we just set the profile data
+      // queryClient.invalidateQueries({ queryKey: ['auth'] })
     },
   })
 }
@@ -35,16 +53,34 @@ export const useRegister = () => {
   return useMutation<DataResponse<AuthData>, ApiError, UserRegistrationRequest>({
     mutationFn: async (userData) => {
       const response = await apiClient.post<DataResponse<AuthData>>('/api/auth/register', userData)
+      console.log('📝 Register response data:', response.data)
+      
       if (response.data?.token) {
         apiClient.setToken(response.data.token)
       }
       return response
     },
     onSuccess: (data) => {
-      if (data.data?.user) {
-        queryClient.setQueryData(['auth', 'profile'], data.data.user)
+      console.log('✅ Register success, extracting user data:', data.data)
+      
+      // Extract user profile from register response
+      if (data.data) {
+        const userProfile: UserProfileData = {
+          id: 1, // Default ID since not provided
+          email: data.data.email || '',
+          fullName: data.data.fullName || '', // Note: API returns full_name
+          balance: data.data.balance || 0,
+          createdAt: new Date().toISOString(),
+          totalBets: 0, // Default values for new user
+          totalBetAmount: 0,
+        }
+        
+        console.log('👤 Setting user profile in cache:', userProfile)
+        queryClient.setQueryData(['auth', 'profile'], userProfile)
       }
-      queryClient.invalidateQueries({ queryKey: ['auth'] })
+      
+      // Don't invalidate auth queries since we just set the profile data
+      // queryClient.invalidateQueries({ queryKey: ['auth'] })
     },
   })
 }
@@ -138,12 +174,6 @@ export const useProfile = () => {
       return failureCount < 2 // Reduce retry attempts
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff
-    onError: (error) => {
-      console.error('❌ Profile query error:', error)
-    },
-    onSuccess: (data) => {
-      console.log('✅ Profile query success:', data)
-    }
   })
 }
 
@@ -155,28 +185,24 @@ export const useAuth = () => {
   const register = useRegister()
   const logout = useLogout()
 
-  // Only provide mock user data when profile query is disabled AND token exists
-  const mockUser: UserProfileData | null = (isProfileDisabled && hasToken) ? {
-    id: 1,
-    email: "user@example.com",
-    fullName: "Usuario Demo",
-    balance: 1500.0,
-    createdAt: new Date().toISOString(),
-    totalBets: 5,
-    totalBetAmount: 750.0,
-  } : null
+  // When profile query is disabled, try to get cached profile data first
+  const queryClient = useQueryClient()
+  const cachedProfile = isProfileDisabled ? 
+    queryClient.getQueryData<UserProfileData>(['auth', 'profile']) : 
+    null
 
-  const user = isProfileDisabled ? mockUser : profile
-  const isAuthenticated = isProfileDisabled ? !!mockUser : !!profile
+  const user = isProfileDisabled ? cachedProfile : profile
+  const isAuthenticated = isProfileDisabled ? (!!cachedProfile && hasToken) : !!profile
 
   // Add debugging info
   if (typeof window !== 'undefined') {
     console.log('Auth Debug:', {
       hasToken,
       isProfileDisabled,
-      mockUser: !!mockUser,
+      cachedProfile: !!cachedProfile,
       profile: !!profile,
       isAuthenticated,
+      user: user ? { email: (user as UserProfileData).email, fullName: (user as UserProfileData).fullName } : null,
       tokenInStorage: !!localStorage.getItem('auth_token')
     })
   }
