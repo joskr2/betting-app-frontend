@@ -16,23 +16,22 @@ import { useRouter } from "next/navigation"
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const { login } = useAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
     setError("")
 
     try {
-      await login(email, password)
+      await login.mutateAsync({
+        email,
+        password,
+      })
       router.push("/")
     } catch (err) {
-      setError("Credenciales inválidas. Por favor, intenta de nuevo.")
-    } finally {
-      setIsLoading(false)
+      setError(login.error?.message || "Credenciales inválidas. Por favor, intenta de nuevo.")
     }
   }
 
@@ -85,8 +84,8 @@ export default function LoginPage() {
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" className="w-full" disabled={login.isPending}>
+                {login.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Iniciar Sesión
               </Button>
             </form>

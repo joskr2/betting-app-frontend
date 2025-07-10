@@ -11,9 +11,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Calculator } from "lucide-react"
 import { useAuth } from "@/lib/auth"
 import { formatCurrency } from "@/lib/utils"
+import { useBetPreview, useCreateBet } from "@/hooks/use-bets"
+import type { EventData } from "@/types/api"
 
 interface BetModalProps {
-  event: any
+  event: EventData & { selectedTeam: string }
   onClose: () => void
   onBetPlaced: () => void
 }
@@ -21,53 +23,57 @@ interface BetModalProps {
 export function BetModal({ event, onClose, onBetPlaced }: BetModalProps) {
   const { user } = useAuth()
   const [amount, setAmount] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [showPreview, setShowPreview] = useState(false)
+
+  const betPreview = useBetPreview()
+  const createBet = useCreateBet()
 
   const betAmount = Number.parseFloat(amount) || 0
-  const potentialWin = betAmount * event.odds
+  const selectedOdds = event.selectedTeam === event.teamA ? event.teamAOdds : event.teamBOdds
+  const potentialWin = betAmount * selectedOdds
   const profit = potentialWin - betAmount
+
+  const handlePreview = async () => {
+    if (betAmount <= 0) return
+
+    await betPreview.mutateAsync({
+      event_id: event.id,
+      selected_team: event.selectedTeam,
+      amount: betAmount,
+    })
+    setShowPreview(true)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-    setError("")
 
-    if (betAmount <= 0) {
-      setError("El monto debe ser mayor a 0")
-      setIsLoading(false)
-      return
-    }
-
-    if (betAmount > (user?.balance || 0)) {
-      setError("Saldo insuficiente")
-      setIsLoading(false)
-      return
-    }
-
-    if (betAmount > 10000) {
-      setError("El monto máximo por apuesta es $10,000")
-      setIsLoading(false)
-      return
-    }
+    if (betAmount <= 0) return
+    if (betAmount > (user?.balance || 0)) return
+    if (betAmount > 10000) return
 
     try {
-      // Simular llamada a la API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // Aquí harías la llamada real a la API
-      // await placeBet({
-      //   eventId: event.id,
-      //   selectedTeam: event.selectedTeam,
-      //   amount: betAmount
-      // })
-
+      await createBet.mutateAsync({
+        event_id: event.id,
+        selected_team: event.selectedTeam,
+        amount: betAmount,
+      })
       onBetPlaced()
     } catch (err) {
-      setError("Error al realizar la apuesta. Intenta de nuevo.")
-    } finally {
-      setIsLoading(false)
+      // Error is handled by the mutation
     }
+  }
+
+  const isValid = betAmount > 0 && 
+                 betAmount <= (user?.balance || 0) && 
+                 betAmount <= 10000 &&
+                 event.canPlaceBets
+
+  const getErrorMessage = () => {
+    if (betAmount <= 0) return "El monto debe ser mayor a 0"
+    if (betAmount > (user?.balance || 0)) return "Saldo insuficiente"
+    if (betAmount > 10000) return "El monto máximo por apuesta es $10,000"
+    if (!event.canPlaceBets) return "Este evento ya no acepta apuestas"
+    return ""
   }
 
   return (
@@ -81,10 +87,32 @@ export function BetModal({ event, onClose, onBetPlaced }: BetModalProps) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
+          {(createBet.error || betPreview.error || getErrorMessage()) && (
             <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>
+                {createBet.error?.message || betPreview.error?.message || getErrorMessage()}
+              </AlertDescription>
             </Alert>
+          )}
+
+          {/* Preview Data */}
+          {betPreview.data && showPreview && (
+            <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
+              <h4 className="font-medium text-yellow-800 mb-2">Vista Previa de Apuesta</h4>
+              <div className="text-sm space-y-1">
+                <p>Nivel de riesgo: <span className="font-medium">{betPreview.data.riskLevel}</span></p>
+                {betPreview.data.warnings && betPreview.data.warnings.length > 0 && (
+                  <div>
+                    <p className="font-medium text-yellow-700">Advertencias:</p>
+                    <ul className="list-disc list-inside text-yellow-600">
+                      {betPreview.data.warnings.map((warning, index) => (
+                        <li key={index}>{warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
 
           {/* Event Info */}
@@ -100,7 +128,7 @@ export function BetModal({ event, onClose, onBetPlaced }: BetModalProps) {
               </div>
               <div>
                 <span className="text-gray-500">Cuota:</span>
-                <p className="font-medium text-blue-600">{event.odds.toFixed(2)}</p>
+                <p className="font-medium text-blue-600">{selectedOdds.toFixed(2)}</p>
               </div>
               <div>
                 <span className="text-gray-500">Tu balance:</span>
@@ -155,7 +183,7 @@ export function BetModal({ event, onClose, onBetPlaced }: BetModalProps) {
                 </div>
                 <div className="flex justify-between">
                   <span>Cuota:</span>
-                  <span className="font-medium">{event.odds.toFixed(2)}</span>
+                  <span className="font-medium">{selectedOdds.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between border-t pt-1">
                   <span>Ganancia potencial:</span>
@@ -174,10 +202,27 @@ export function BetModal({ event, onClose, onBetPlaced }: BetModalProps) {
             <Button type="button" variant="outline" onClick={onClose} className="flex-1 bg-transparent">
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading || betAmount <= 0} className="flex-1">
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Confirmar Apuesta
-            </Button>
+            {!showPreview && betAmount > 0 ? (
+              <Button 
+                type="button" 
+                variant="secondary" 
+                onClick={handlePreview}
+                disabled={betPreview.isPending || !isValid}
+                className="flex-1"
+              >
+                {betPreview.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Vista Previa
+              </Button>
+            ) : (
+              <Button 
+                type="submit" 
+                disabled={createBet.isPending || !isValid} 
+                className="flex-1"
+              >
+                {createBet.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirmar Apuesta
+              </Button>
+            )}
           </div>
         </form>
       </DialogContent>

@@ -20,7 +20,6 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
   })
-  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const { register } = useAuth()
   const router = useRouter()
@@ -34,28 +33,27 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
     setError("")
 
     if (formData.password !== formData.confirmPassword) {
       setError("Las contraseñas no coinciden")
-      setIsLoading(false)
       return
     }
 
     if (formData.password.length < 6) {
       setError("La contraseña debe tener al menos 6 caracteres")
-      setIsLoading(false)
       return
     }
 
     try {
-      await register(formData.email, formData.password, formData.fullName)
+      await register.mutateAsync({
+        email: formData.email,
+        password: formData.password,
+        full_name: formData.fullName,
+      })
       router.push("/")
     } catch (err) {
-      setError("Error al crear la cuenta. Por favor, intenta de nuevo.")
-    } finally {
-      setIsLoading(false)
+      setError(register.error?.message || "Error al crear la cuenta. Por favor, intenta de nuevo.")
     }
   }
 
@@ -136,8 +134,8 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" className="w-full" disabled={register.isPending}>
+                {register.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Crear Cuenta
               </Button>
             </form>
