@@ -1,3 +1,4 @@
+import type { ValidationError } from "next/dist/compiled/amphtml-validator";
 import type { ApiError } from "@/types/api";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -88,7 +89,7 @@ export class ApiClient {
 			});
 
 			if (!response.ok) {
-				let errorData: any;
+				let errorData: unknown;
 				try {
 					errorData = await response.json();
 				} catch {
@@ -97,13 +98,28 @@ export class ApiClient {
 
 				// Handle BFF validation errors
 				let message = "An error occurred";
-				if (errorData.detail && Array.isArray(errorData.detail)) {
+				if (
+					errorData &&
+					typeof errorData === "object" &&
+					"detail" in errorData &&
+					Array.isArray((errorData as { detail: unknown }).detail)
+				) {
 					// FastAPI validation errors
-					message = errorData.detail.map((err: any) => err.msg).join(", ");
-				} else if (errorData.message) {
-					message = errorData.message;
-				} else if (errorData.title) {
-					message = errorData.title;
+					message = (errorData as { detail: { msg: string }[] }).detail
+						.map((err) => err.msg)
+						.join(", ");
+				} else if (
+					errorData &&
+					typeof errorData === "object" &&
+					"message" in errorData
+				) {
+					message = (errorData as { message: string }).message;
+				} else if (
+					errorData &&
+					typeof errorData === "object" &&
+					"title" in errorData
+				) {
+					message = (errorData as { title: string }).title;
 				} else if (typeof errorData === "string") {
 					message = errorData;
 				}
@@ -111,7 +127,23 @@ export class ApiClient {
 				const error: ApiError = {
 					message,
 					status: response.status,
-					details: errorData.detail || errorData.errors,
+					details:
+						errorData &&
+						typeof errorData === "object" &&
+						("detail" in errorData || "errors" in errorData)
+							? (
+									errorData as {
+										detail?: string | ValidationError[];
+										errors?: string | ValidationError[];
+									}
+								).detail ||
+								(
+									errorData as {
+										detail?: string | ValidationError[];
+										errors?: string | ValidationError[];
+									}
+								).errors
+							: undefined,
 				};
 
 				console.error("API Error:", error);
@@ -141,34 +173,37 @@ export class ApiClient {
 		}
 	}
 
-	async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
+	async get<T>(
+		endpoint: string,
+		params?: Record<string, string | number | boolean>,
+	): Promise<T> {
 		const url = new URL(endpoint, this.baseUrl);
 		if (params) {
-			Object.entries(params).forEach(([key, value]) => {
+			for (const [key, value] of Object.entries(params)) {
 				if (value !== undefined && value !== null) {
 					url.searchParams.append(key, String(value));
 				}
-			});
+			}
 		}
 
 		return this.request<T>(url.pathname + url.search);
 	}
 
-	async post<T>(endpoint: string, data?: any): Promise<T> {
+	async post<T>(endpoint: string, data?: unknown): Promise<T> {
 		return this.request<T>(endpoint, {
 			method: "POST",
 			body: data ? JSON.stringify(data) : undefined,
 		});
 	}
 
-	async put<T>(endpoint: string, data?: any): Promise<T> {
+	async put<T>(endpoint: string, data?: unknown): Promise<T> {
 		return this.request<T>(endpoint, {
 			method: "PUT",
 			body: data ? JSON.stringify(data) : undefined,
 		});
 	}
 
-	async patch<T>(endpoint: string, data?: any): Promise<T> {
+	async patch<T>(endpoint: string, data?: unknown): Promise<T> {
 		return this.request<T>(endpoint, {
 			method: "PATCH",
 			body: data ? JSON.stringify(data) : undefined,

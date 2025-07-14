@@ -4,6 +4,21 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { PanelLeft } from "lucide-react";
 import * as React from "react";
+
+// Type declaration for Cookie Store API
+declare global {
+	interface Window {
+		cookieStore?: {
+			set(options: {
+				name: string;
+				value: string;
+				path?: string;
+				maxAge?: number;
+			}): Promise<void>;
+		};
+	}
+}
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -82,8 +97,24 @@ const SidebarProvider = React.forwardRef<
 					_setOpen(openState);
 				}
 
-				// This sets the cookie to keep the sidebar state.
-				document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+				// This sets the cookie to keep the sidebar state using Cookie Store API.
+				if ("cookieStore" in window && window.cookieStore) {
+					// Use the modern Cookie Store API when available
+					window.cookieStore
+						.set({
+							name: SIDEBAR_COOKIE_NAME,
+							value: String(openState),
+							path: "/",
+							maxAge: SIDEBAR_COOKIE_MAX_AGE,
+						})
+						.catch(() => {
+							// Fallback to document.cookie if Cookie Store API fails
+							document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+						});
+				} else {
+					// Fallback to document.cookie for browsers that don't support Cookie Store API
+					document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+				}
 			},
 			[setOpenProp, open],
 		);

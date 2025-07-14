@@ -1,6 +1,6 @@
 // TypeScript types generated from BFF OpenAPI schema
 
-export interface DataResponse<T = any> {
+export interface DataResponse<T = unknown> {
 	success: boolean;
 	message: string;
 	timestamp: string;

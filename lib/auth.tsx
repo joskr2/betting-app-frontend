@@ -3,6 +3,9 @@
 import { createContext, type ReactNode, useContext } from "react";
 import { useAuth as useApiAuth } from "@/hooks/use-auth";
 import type {
+	ApiError,
+	AuthData,
+	DataResponse,
 	UserLoginRequest,
 	UserProfileData,
 	UserRegistrationRequest,
@@ -12,22 +15,24 @@ interface AuthContextType {
 	user: UserProfileData | null | undefined;
 	isAuthenticated: boolean;
 	isLoading: boolean;
-	error: any;
+	error: ApiError | null;
 	login: {
 		mutate: (data: UserLoginRequest) => void;
-		mutateAsync: (data: UserLoginRequest) => Promise<any>;
+		mutateAsync: (data: UserLoginRequest) => Promise<DataResponse<AuthData>>;
 		isPending: boolean;
-		error: any;
+		error: ApiError | null;
 	};
 	register: {
 		mutate: (data: UserRegistrationRequest) => void;
-		mutateAsync: (data: UserRegistrationRequest) => Promise<any>;
+		mutateAsync: (
+			data: UserRegistrationRequest,
+		) => Promise<DataResponse<AuthData>>;
 		isPending: boolean;
-		error: any;
+		error: ApiError | null;
 	};
 	logout: {
 		mutate: () => void;
-		mutateAsync: () => Promise<any>;
+		mutateAsync: () => Promise<DataResponse<{ message?: string }>>;
 		isPending: boolean;
 	};
 }

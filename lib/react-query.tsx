@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState } from "react";
+import type { ApiError } from "@/types/api";
 
 export function ReactQueryProvider({
 	children,
@@ -19,9 +20,9 @@ export function ReactQueryProvider({
 						refetchOnWindowFocus: false,
 						refetchOnMount: false, // Don't refetch when component mounts if data exists
 						refetchOnReconnect: true, // Only refetch when reconnecting to internet
-						retry: (failureCount, error: any) => {
+						retry: (failureCount, error: Error) => {
 							// Don't retry on 4xx or 5xx errors
-							if (error?.status >= 400) {
+							if ((error as unknown as ApiError)?.status >= 400) {
 								return false;
 							}
 							return failureCount < 2;
