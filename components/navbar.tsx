@@ -14,10 +14,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/auth";
 import { formatCurrency } from "@/lib/utils";
+import { NavbarSkeleton } from "@/components/skeletons";
 
 export function Navbar() {
-	const { user, isAuthenticated, logout } = useAuth();
+	const { user, isAuthenticated, logout, isLoading } = useAuth();
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+	if (isLoading) {
+		return <NavbarSkeleton />;
+	}
 
 	return (
 		<nav className="bg-white shadow-sm border-b">

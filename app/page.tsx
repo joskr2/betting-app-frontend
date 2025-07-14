@@ -4,11 +4,13 @@ import { Calendar, Clock, TrendingUp, Users } from "lucide-react";
 import { useState } from "react";
 import { BetModal } from "@/components/bet-modal";
 import { Navbar } from "@/components/navbar";
+import { EventListSkeleton, StatsGridSkeleton } from "@/components/skeletons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useBettingDashboard } from "@/hooks/use-bets";
+import { useEvents } from "@/hooks/use-events";
 import { useAuth } from "@/lib/auth";
-import { mockEvents } from "@/lib/mock-data";
 import { formatCurrency, formatDate, getTimeUntilEvent } from "@/lib/utils";
 
 interface SelectedEvent {
@@ -21,10 +23,9 @@ interface SelectedEvent {
 	eventDate: string;
 	status: string;
 	canPlaceBets: boolean;
-	timeUntilEvent: string;
-	totalBetsAmount: number;
-	totalBetsCount: number;
-	createdAt: string;
+	timeUntilEvent?: string;
+	totalBetsAmount?: number;
+	totalBetsCount?: number;
 	selectedTeam: string;
 	odds: number;
 }
@@ -34,7 +35,15 @@ export default function HomePage() {
 	const [selectedEvent, setSelectedEvent] = useState<SelectedEvent | null>(
 		null,
 	);
-	const [events, _setEvents] = useState(mockEvents);
+
+	// Fetch real data
+	const {
+		data: events,
+		isLoading: eventsLoading,
+		error: eventsError,
+	} = useEvents({ limit: 10 });
+	const { data: dashboard, isLoading: dashboardLoading } =
+		useBettingDashboard();
 
 	if (!isAuthenticated) {
 		return (
@@ -79,136 +88,168 @@ export default function HomePage() {
 				</div>
 
 				{/* User Stats */}
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-					<Card>
-						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium">
-								Balance Actual
-							</CardTitle>
-							<TrendingUp className="h-4 w-4 text-muted-foreground" />
-						</CardHeader>
-						<CardContent>
-							<div className="text-2xl font-bold text-green-600">
-								{formatCurrency(user?.balance || 0)}
-							</div>
-						</CardContent>
-					</Card>
-
-					<Card>
-						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium">
-								Apuestas Activas
-							</CardTitle>
-							<Users className="h-4 w-4 text-muted-foreground" />
-						</CardHeader>
-						<CardContent>
-							<div className="text-2xl font-bold">3</div>
-						</CardContent>
-					</Card>
-
-					<Card>
-						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium">
-								Ganancia Potencial
-							</CardTitle>
-							<TrendingUp className="h-4 w-4 text-muted-foreground" />
-						</CardHeader>
-						<CardContent>
-							<div className="text-2xl font-bold text-blue-600">
-								{formatCurrency(450)}
-							</div>
-						</CardContent>
-					</Card>
-				</div>
-
-				{/* Events Grid */}
-				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-					{events.map((event) => (
-						<Card key={event.id} className="hover:shadow-lg transition-shadow">
-							<CardHeader>
-								<div className="flex justify-between items-start">
-									<div>
-										<CardTitle className="text-lg">{event.name}</CardTitle>
-										<div className="flex items-center text-sm text-gray-500 mt-1">
-											<Calendar className="h-4 w-4 mr-1" />
-											{formatDate(event.eventDate)}
-											<Clock className="h-4 w-4 ml-3 mr-1" />
-											{getTimeUntilEvent(event.eventDate)}
-										</div>
-									</div>
-									<Badge
-										variant={
-											event.status === "Active" ? "default" : "secondary"
-										}
-									>
-										{event.status === "Active" ? "Activo" : "Finalizado"}
-									</Badge>
-								</div>
+				{dashboardLoading ? (
+					<div className="mb-8">
+						<StatsGridSkeleton />
+					</div>
+				) : (
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+						<Card>
+							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+								<CardTitle className="text-sm font-medium">
+									Balance Actual
+								</CardTitle>
+								<TrendingUp className="h-4 w-4 text-muted-foreground" />
 							</CardHeader>
-
 							<CardContent>
-								<div className="space-y-4">
-									{/* Teams and Odds */}
-									<div className="grid grid-cols-2 gap-4">
-										<div className="text-center p-4 bg-blue-50 rounded-lg">
-											<div className="font-semibold text-gray-900">
-												{event.teamA}
-											</div>
-											<div className="text-2xl font-bold text-blue-600 mt-1">
-												{event.teamAOdds.toFixed(2)}
-											</div>
-											<Button
-												size="sm"
-												className="mt-2 w-full"
-												onClick={() =>
-													setSelectedEvent({
-														...event,
-														selectedTeam: event.teamA,
-														odds: event.teamAOdds,
-													})
-												}
-												disabled={!event.canPlaceBets}
-											>
-												Apostar
-											</Button>
-										</div>
-
-										<div className="text-center p-4 bg-red-50 rounded-lg">
-											<div className="font-semibold text-gray-900">
-												{event.teamB}
-											</div>
-											<div className="text-2xl font-bold text-red-600 mt-1">
-												{event.teamBOdds.toFixed(2)}
-											</div>
-											<Button
-												size="sm"
-												className="mt-2 w-full"
-												onClick={() =>
-													setSelectedEvent({
-														...event,
-														selectedTeam: event.teamB,
-														odds: event.teamBOdds,
-													})
-												}
-												disabled={!event.canPlaceBets}
-											>
-												Apostar
-											</Button>
-										</div>
-									</div>
-
-									{/* Event Stats */}
-									<div className="flex justify-between text-sm text-gray-500 pt-2 border-t">
-										<span>
-											Total apostado: {formatCurrency(event.totalBetsAmount)}
-										</span>
-										<span>{event.totalBetsCount} apuestas</span>
-									</div>
+								<div className="text-2xl font-bold text-green-600">
+									{formatCurrency(user?.balance || dashboard?.user.balance || 0)}
 								</div>
 							</CardContent>
 						</Card>
-					))}
-				</div>
+
+						<Card>
+							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+								<CardTitle className="text-sm font-medium">
+									Apuestas Activas
+								</CardTitle>
+								<Users className="h-4 w-4 text-muted-foreground" />
+							</CardHeader>
+							<CardContent>
+								<div className="text-2xl font-bold">
+									{dashboard?.statistics.activeBets || 0}
+								</div>
+							</CardContent>
+						</Card>
+
+						<Card>
+							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+								<CardTitle className="text-sm font-medium">
+									Ganancia Potencial
+								</CardTitle>
+								<TrendingUp className="h-4 w-4 text-muted-foreground" />
+							</CardHeader>
+							<CardContent>
+								<div className="text-2xl font-bold text-blue-600">
+									{formatCurrency(dashboard?.statistics.currentPotentialWin || 0)}
+								</div>
+							</CardContent>
+						</Card>
+					</div>
+				)}
+
+				{/* Events Grid */}
+				{eventsLoading ? (
+					<EventListSkeleton />
+				) : eventsError ? (
+					<Card>
+						<CardContent className="py-8 text-center">
+							<p className="text-gray-500 mb-4">Error al cargar eventos</p>
+							<Button onClick={() => window.location.reload()}>
+								Reintentar
+							</Button>
+						</CardContent>
+					</Card>
+				) : !events || events.length === 0 ? (
+					<Card>
+						<CardContent className="py-8 text-center">
+							<p className="text-gray-500">
+								No hay eventos disponibles en este momento
+							</p>
+						</CardContent>
+					</Card>
+				) : (
+					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+						{events.map((event) => (
+							<Card
+								key={event.id}
+								className="hover:shadow-lg transition-shadow"
+							>
+								<CardHeader>
+									<div className="flex justify-between items-start">
+										<div>
+											<CardTitle className="text-lg">{event.name}</CardTitle>
+											<div className="flex items-center text-sm text-gray-500 mt-1">
+												<Calendar className="h-4 w-4 mr-1" />
+												{formatDate(event.eventDate)}
+												<Clock className="h-4 w-4 ml-3 mr-1" />
+												{getTimeUntilEvent(event.eventDate)}
+											</div>
+										</div>
+										<Badge
+											variant={
+												event.status === "Active" ? "default" : "secondary"
+											}
+										>
+											{event.status === "Active" ? "Activo" : "Finalizado"}
+										</Badge>
+									</div>
+								</CardHeader>
+
+								<CardContent>
+									<div className="space-y-4">
+										{/* Teams and Odds */}
+										<div className="grid grid-cols-2 gap-4">
+											<div className="text-center p-4 bg-blue-50 rounded-lg">
+												<div className="font-semibold text-gray-900">
+													{event.teamA}
+												</div>
+												<div className="text-2xl font-bold text-blue-600 mt-1">
+													{event.teamAOdds.toFixed(2)}
+												</div>
+												<Button
+													size="sm"
+													className="mt-2 w-full"
+													onClick={() =>
+														setSelectedEvent({
+															...event,
+															selectedTeam: event.teamA,
+															odds: event.teamAOdds,
+														})
+													}
+													disabled={!event.canPlaceBets}
+												>
+													Apostar
+												</Button>
+											</div>
+
+											<div className="text-center p-4 bg-red-50 rounded-lg">
+												<div className="font-semibold text-gray-900">
+													{event.teamB}
+												</div>
+												<div className="text-2xl font-bold text-red-600 mt-1">
+													{event.teamBOdds.toFixed(2)}
+												</div>
+												<Button
+													size="sm"
+													className="mt-2 w-full"
+													onClick={() =>
+														setSelectedEvent({
+															...event,
+															selectedTeam: event.teamB,
+															odds: event.teamBOdds,
+														})
+													}
+													disabled={!event.canPlaceBets}
+												>
+													Apostar
+												</Button>
+											</div>
+										</div>
+
+										{/* Event Stats */}
+										<div className="flex justify-between text-sm text-gray-500 pt-2 border-t">
+											<span>
+												Total apostado: {formatCurrency(event.totalBetsAmount || 0)}
+											</span>
+											<span>{event.totalBetsCount} apuestas</span>
+										</div>
+									</div>
+								</CardContent>
+							</Card>
+						))}
+					</div>
+				)}
 			</div>
 
 			{/* Bet Modal */}

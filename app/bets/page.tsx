@@ -1,19 +1,29 @@
 "use client";
 
 import { Calendar, Clock, TrendingUp, X } from "lucide-react";
-import { useState } from "react";
 import { Navbar } from "@/components/navbar";
+import { BetListSkeleton, BetsStatsGridSkeleton } from "@/components/skeletons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCancelBet, useUserBets } from "@/hooks/use-bets";
 import { useAuth } from "@/lib/auth";
-import { mockBets } from "@/lib/mock-data";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 export default function BetsPage() {
-	const { user, isAuthenticated } = useAuth();
-	const [bets, setBets] = useState(mockBets);
+	const { isAuthenticated } = useAuth();
+
+	// Fetch real data
+	const {
+		data: userBetsData,
+		isLoading: betsLoading,
+		error: betsError,
+	} = useUserBets({ include_statistics: true });
+	const cancelBetMutation = useCancelBet();
+
+	const bets = userBetsData?.bets || [];
+	const statistics = userBetsData?.statistics;
 
 	if (!isAuthenticated) {
 		return (
@@ -36,7 +46,7 @@ export default function BetsPage() {
 	const completedBets = bets.filter((bet) => bet.status !== "Active");
 
 	const handleCancelBet = (betId: number) => {
-		setBets((prev) => prev.filter((bet) => bet.id !== betId));
+		cancelBetMutation.mutate(betId);
 	};
 
 	const getBadgeVariant = (status: string) => {
@@ -85,65 +95,82 @@ export default function BetsPage() {
 				</div>
 
 				{/* Stats Cards */}
-				<div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-					<Card>
-						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium">
-								Apuestas Activas
-							</CardTitle>
-							<TrendingUp className="h-4 w-4 text-muted-foreground" />
-						</CardHeader>
-						<CardContent>
-							<div className="text-2xl font-bold">{activeBets.length}</div>
-						</CardContent>
-					</Card>
+				{betsLoading ? (
+					<div className="mb-8">
+						<BetsStatsGridSkeleton />
+					</div>
+				) : (
+					<div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+						<Card>
+							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+								<CardTitle className="text-sm font-medium">
+									Apuestas Activas
+								</CardTitle>
+								<TrendingUp className="h-4 w-4 text-muted-foreground" />
+							</CardHeader>
+							<CardContent>
+								<div className="text-2xl font-bold">
+									{statistics?.activeBets || activeBets.length}
+								</div>
+							</CardContent>
+						</Card>
 
-					<Card>
-						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium">
-								Total Apostado
-							</CardTitle>
-							<TrendingUp className="h-4 w-4 text-muted-foreground" />
-						</CardHeader>
-						<CardContent>
-							<div className="text-2xl font-bold">
-								{formatCurrency(bets.reduce((sum, bet) => sum + bet.amount, 0))}
-							</div>
-						</CardContent>
-					</Card>
+						<Card>
+							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+								<CardTitle className="text-sm font-medium">
+									Total Apostado
+								</CardTitle>
+								<TrendingUp className="h-4 w-4 text-muted-foreground" />
+							</CardHeader>
+							<CardContent>
+								<div className="text-2xl font-bold">
+									{formatCurrency(
+										statistics?.totalAmountBet ||
+											bets.reduce((sum, bet) => sum + bet.amount, 0),
+									)}
+								</div>
+							</CardContent>
+						</Card>
 
-					<Card>
-						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium">
-								Ganancia Potencial
-							</CardTitle>
-							<TrendingUp className="h-4 w-4 text-muted-foreground" />
-						</CardHeader>
-						<CardContent>
-							<div className="text-2xl font-bold text-green-600">
-								{formatCurrency(
-									activeBets.reduce((sum, bet) => sum + bet.potentialWin, 0),
-								)}
-							</div>
-						</CardContent>
-					</Card>
+						<Card>
+							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+								<CardTitle className="text-sm font-medium">
+									Ganancia Potencial
+								</CardTitle>
+								<TrendingUp className="h-4 w-4 text-muted-foreground" />
+							</CardHeader>
+							<CardContent>
+								<div className="text-2xl font-bold text-green-600">
+									{formatCurrency(
+										statistics?.currentPotentialWin ||
+											activeBets.reduce(
+												(sum, bet) => sum + bet.potentialWin,
+												0,
+											),
+									)}
+								</div>
+							</CardContent>
+						</Card>
 
-					<Card>
-						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium">
-								Tasa de Éxito
-							</CardTitle>
-							<TrendingUp className="h-4 w-4 text-muted-foreground" />
-						</CardHeader>
-						<CardContent>
-							<div className="text-2xl font-bold text-blue-600">
-								{completedBets.length > 0
-									? `${Math.round((completedBets.filter((bet) => bet.status === "Won").length / completedBets.length) * 100)}%`
-									: "0%"}
-							</div>
-						</CardContent>
-					</Card>
-				</div>
+						<Card>
+							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+								<CardTitle className="text-sm font-medium">
+									Tasa de Éxito
+								</CardTitle>
+								<TrendingUp className="h-4 w-4 text-muted-foreground" />
+							</CardHeader>
+							<CardContent>
+								<div className="text-2xl font-bold text-blue-600">
+									{statistics?.winRate
+										? `${Math.round(statistics.winRate * 100)}%`
+										: completedBets.length > 0
+											? `${Math.round((completedBets.filter((bet) => bet.status === "Won").length / completedBets.length) * 100)}%`
+											: "0%"}
+								</div>
+							</CardContent>
+						</Card>
+					</div>
+				)}
 
 				{/* Bets Tabs */}
 				<Tabs defaultValue="active" className="space-y-6">
@@ -157,7 +184,18 @@ export default function BetsPage() {
 					</TabsList>
 
 					<TabsContent value="active" className="space-y-4">
-						{activeBets.length === 0 ? (
+						{betsLoading ? (
+							<BetListSkeleton />
+						) : betsError ? (
+							<Card>
+								<CardContent className="py-8 text-center">
+									<p className="text-gray-500 mb-4">Error al cargar apuestas</p>
+									<Button onClick={() => window.location.reload()}>
+										Reintentar
+									</Button>
+								</CardContent>
+							</Card>
+						) : activeBets.length === 0 ? (
 							<Card>
 								<CardContent className="py-8 text-center">
 									<p className="text-gray-500">No tienes apuestas activas</p>
@@ -233,7 +271,20 @@ export default function BetsPage() {
 					</TabsContent>
 
 					<TabsContent value="history" className="space-y-4">
-						{completedBets.length === 0 ? (
+						{betsLoading ? (
+							<BetListSkeleton />
+						) : betsError ? (
+							<Card>
+								<CardContent className="py-8 text-center">
+									<p className="text-gray-500 mb-4">
+										Error al cargar historial
+									</p>
+									<Button onClick={() => window.location.reload()}>
+										Reintentar
+									</Button>
+								</CardContent>
+							</Card>
+						) : completedBets.length === 0 ? (
 							<Card>
 								<CardContent className="py-8 text-center">
 									<p className="text-gray-500">
