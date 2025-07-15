@@ -25,28 +25,32 @@ export default function RegisterPage() {
 		password: "",
 		confirmPassword: "",
 	});
-	const [error, setError] = useState("");
 	const { register } = useAuth();
 	const router = useRouter();
+	const [validationError, setValidationError] = useState("");
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setFormData((prev) => ({
 			...prev,
 			[e.target.name]: e.target.value,
 		}));
+		// Clear validation error when user starts typing
+		if (validationError) {
+			setValidationError("");
+		}
 	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		setError("");
+		setValidationError("");
 
 		if (formData.password !== formData.confirmPassword) {
-			setError("Las contraseñas no coinciden");
+			setValidationError("Las contraseñas no coinciden");
 			return;
 		}
 
 		if (formData.password.length < 6) {
-			setError("La contraseña debe tener al menos 6 caracteres");
+			setValidationError("La contraseña debe tener al menos 6 caracteres");
 			return;
 		}
 
@@ -58,10 +62,7 @@ export default function RegisterPage() {
 			});
 			router.push("/");
 		} catch (_err) {
-			setError(
-				register.error?.message ||
-					"Error al crear la cuenta. Por favor, intenta de nuevo.",
-			);
+			// Error handling is now done through the ErrorHandler in the mutation
 		}
 	};
 
@@ -86,9 +87,9 @@ export default function RegisterPage() {
 					</CardHeader>
 					<CardContent>
 						<form onSubmit={handleSubmit} className="space-y-4">
-							{error && (
+							{validationError && (
 								<Alert variant="destructive">
-									<AlertDescription>{error}</AlertDescription>
+									<AlertDescription>{validationError}</AlertDescription>
 								</Alert>
 							)}
 

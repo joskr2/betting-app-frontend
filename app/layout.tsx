@@ -4,6 +4,7 @@ import type React from "react";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { ReactQueryProvider } from "@/lib/react-query";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,7 +22,10 @@ export default function RootLayout({
 		<html lang="es">
 			<body className={inter.className}>
 				<ReactQueryProvider>
-					<AuthProvider>{children}</AuthProvider>
+					<AuthProvider>
+						{children}
+						<Toaster />
+					</AuthProvider>
 				</ReactQueryProvider>
 			</body>
 		</html>

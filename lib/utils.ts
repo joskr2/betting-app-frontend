@@ -40,12 +40,12 @@ export function getTimeUntilEvent(eventDate: string): string {
 
 	if (diffInDays > 0) {
 		return `${diffInDays} día${diffInDays > 1 ? "s" : ""}`;
-	} else if (diffInHours > 0) {
-		return `${diffInHours} hora${diffInHours > 1 ? "s" : ""}`;
-	} else {
-		const diffInMinutes = Math.floor(
-			(diffInMs % (1000 * 60 * 60)) / (1000 * 60),
-		);
-		return `${diffInMinutes} minuto${diffInMinutes > 1 ? "s" : ""}`;
 	}
+	if (diffInHours > 0) {
+		return `${diffInHours} hora${diffInHours > 1 ? "s" : ""}`;
+	}
+	const diffInMinutes = Math.floor(
+		(diffInMs % (1000 * 60 * 60)) / (1000 * 60),
+	);
+	return `${diffInMinutes} minuto${diffInMinutes > 1 ? "s" : ""}`;
 }

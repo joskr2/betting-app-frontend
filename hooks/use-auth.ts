@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
+import { ErrorHandler } from "@/lib/error-handler";
 import type {
 	ApiError,
 	AuthData,
@@ -20,8 +21,15 @@ export const useLogin = () => {
 			);
 			console.log("🔐 Login response data:", response.data);
 
+			// Check if BFF is returning mock response
+			if (ErrorHandler.isBffMockResponse(response)) {
+				ErrorHandler.handleBffMockResponse("login");
+				throw new Error("BFF está en modo de prueba - la funcionalidad de login no está disponible");
+			}
+
 			if (response.data?.token) {
 				apiClient.setToken(response.data.token);
+				ErrorHandler.showOperationToast("login", "success");
 			}
 			return response;
 		},
@@ -47,6 +55,9 @@ export const useLogin = () => {
 			// Don't invalidate auth queries since we just set the profile data
 			// queryClient.invalidateQueries({ queryKey: ['auth'] })
 		},
+		onError: (error) => {
+			ErrorHandler.handleApiError(error, { operation: "login" });
+		},
 	});
 };
 
@@ -62,8 +73,15 @@ export const useRegister = () => {
 				);
 				console.log("📝 Register response data:", response.data);
 
+				// Check if BFF is returning mock response
+				if (ErrorHandler.isBffMockResponse(response)) {
+					ErrorHandler.handleBffMockResponse("register");
+					throw new Error("BFF está en modo de prueba - la funcionalidad de registro no está disponible");
+				}
+
 				if (response.data?.token) {
 					apiClient.setToken(response.data.token);
+					ErrorHandler.showOperationToast("register", "success");
 				}
 				return response;
 			},
@@ -88,6 +106,9 @@ export const useRegister = () => {
 
 				// Don't invalidate auth queries since we just set the profile data
 				// queryClient.invalidateQueries({ queryKey: ['auth'] })
+			},
+			onError: (error) => {
+				ErrorHandler.handleApiError(error, { operation: "register" });
 			},
 		},
 	);
@@ -124,14 +145,16 @@ export const useLogout = () => {
 			queryClient.removeQueries({ queryKey: ["auth"] });
 			queryClient.removeQueries({ queryKey: ["bets"] });
 			queryClient.removeQueries({ queryKey: ["events"] });
+			ErrorHandler.showSuccess("Has cerrado sesión correctamente", "¡Hasta luego!");
 		},
-		onError: () => {
+		onError: (error) => {
 			// Force cleanup even on error
 			apiClient.setToken(null);
 			queryClient.setQueryData(["auth", "profile"], null);
 			queryClient.removeQueries({ queryKey: ["auth"] });
 			queryClient.removeQueries({ queryKey: ["bets"] });
 			queryClient.removeQueries({ queryKey: ["events"] });
+			ErrorHandler.handleApiError(error, { operation: "logout" });
 		},
 	});
 };

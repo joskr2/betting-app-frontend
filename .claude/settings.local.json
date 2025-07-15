@@ -4,7 +4,8 @@
       "mcp__ide__getDiagnostics",
       "Bash(npm run typecheck:*)",
       "Bash(npx biome check:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": []
   }

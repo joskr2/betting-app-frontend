@@ -21,13 +21,11 @@ import { useAuth } from "@/lib/auth";
 export default function LoginPage() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
-	const [error, setError] = useState("");
 	const { login } = useAuth();
 	const router = useRouter();
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		setError("");
 
 		try {
 			await login.mutateAsync({
@@ -36,10 +34,7 @@ export default function LoginPage() {
 			});
 			router.push("/");
 		} catch (_err) {
-			setError(
-				login.error?.message ||
-					"Credenciales inválidas. Por favor, intenta de nuevo.",
-			);
+			// Error handling is now done through the ErrorHandler in the mutation
 		}
 	};
 
@@ -64,11 +59,6 @@ export default function LoginPage() {
 					</CardHeader>
 					<CardContent>
 						<form onSubmit={handleSubmit} className="space-y-4">
-							{error && (
-								<Alert variant="destructive">
-									<AlertDescription>{error}</AlertDescription>
-								</Alert>
-							)}
 
 							<div className="space-y-2">
 								<Label htmlFor="email">Email</Label>

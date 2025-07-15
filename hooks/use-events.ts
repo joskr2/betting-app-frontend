@@ -14,9 +14,14 @@ export const useEvents = (params?: EventsQuery) => {
 	return useQuery<EventData[], ApiError>({
 		queryKey: ["events", params],
 		queryFn: async () => {
+			// Filter out null/undefined values to match apiClient.get type requirements
+			const filteredParams = params ? Object.fromEntries(
+				Object.entries(params).filter(([_, value]) => value !== null && value !== undefined)
+			) as Record<string, string | number | boolean> : undefined;
+			
 			const response = await apiClient.get<DataResponse<EventData[]>>(
-				"/api/events/",
-				params,
+				"/api/events",
+				filteredParams,
 			);
 			return response.data || [];
 		},
@@ -29,9 +34,14 @@ export const useEventDetail = (eventId: number, params?: EventDetailQuery) => {
 	return useQuery<EventDetailData, ApiError>({
 		queryKey: ["events", eventId, params],
 		queryFn: async () => {
+			// Filter out null/undefined values to match apiClient.get type requirements
+			const filteredParams = params ? Object.fromEntries(
+				Object.entries(params).filter(([_, value]) => value !== null && value !== undefined)
+			) as Record<string, string | number | boolean> : undefined;
+			
 			const response = await apiClient.get<DataResponse<EventDetailData>>(
 				`/api/events/${eventId}`,
-				params,
+				filteredParams,
 			);
 			if (!response.data) {
 				throw new Error("Event detail data is missing in response");
@@ -48,9 +58,14 @@ export const usePopularEvents = (params?: PopularEventsQuery) => {
 	return useQuery<EventData[], ApiError>({
 		queryKey: ["events", "popular", params],
 		queryFn: async () => {
+			// Filter out null/undefined values to match apiClient.get type requirements
+			const filteredParams = params ? Object.fromEntries(
+				Object.entries(params).filter(([_, value]) => value !== null && value !== undefined)
+			) as Record<string, string | number | boolean> : undefined;
+			
 			const response = await apiClient.get<DataResponse<EventData[]>>(
 				"/api/events/trending/popular",
-				params,
+				filteredParams,
 			);
 			return response.data || [];
 		},

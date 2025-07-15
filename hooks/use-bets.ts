@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
+import { ErrorHandler } from "@/lib/error-handler";
 import type {
 	ApiError,
 	BetCreationRequest,
@@ -18,10 +19,20 @@ export const useBetPreview = () => {
 				"/api/bets/preview",
 				betData,
 			);
+
+			// Check if BFF is returning mock response
+			if (ErrorHandler.isBffMockResponse(response)) {
+				ErrorHandler.handleBffMockResponse("bet");
+				throw new Error("BFF está en modo de prueba - la funcionalidad de vista previa no está disponible");
+			}
+
 			if (!response.data) {
 				throw new Error("Bet preview data is missing in response");
 			}
 			return response.data;
+		},
+		onError: (error) => {
+			ErrorHandler.handleApiError(error, { operation: "bet" });
 		},
 	});
 };
@@ -35,6 +46,13 @@ export const useCreateBet = () => {
 				"/api/bets/",
 				betData,
 			);
+
+			// Check if BFF is returning mock response
+			if (ErrorHandler.isBffMockResponse(response)) {
+				ErrorHandler.handleBffMockResponse("bet");
+				throw new Error("BFF está en modo de prueba - la funcionalidad de apuestas no está disponible");
+			}
+
 			if (!response.data) {
 				throw new Error("Bet creation data is missing in response");
 			}
@@ -45,6 +63,9 @@ export const useCreateBet = () => {
 			queryClient.invalidateQueries({ queryKey: ["bets"] });
 			queryClient.invalidateQueries({ queryKey: ["auth", "profile"] });
 			queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+
+			// Show success message
+			ErrorHandler.showOperationToast("bet", "success");
 
 			// Optimistically update the user's bets list
 			queryClient.setQueryData(
@@ -69,6 +90,9 @@ export const useCreateBet = () => {
 					return old;
 				},
 			);
+		},
+		onError: (error) => {
+			ErrorHandler.handleApiError(error, { operation: "bet" });
 		},
 	});
 };
@@ -123,9 +147,14 @@ export const useUserBets = (params?: UserBetsQuery) => {
 	return useQuery<UserBetsData, ApiError>({
 		queryKey: ["bets", "my-bets", params],
 		queryFn: async () => {
+			// Filter out null/undefined values to match apiClient.get type requirements
+			const filteredParams = params ? Object.fromEntries(
+				Object.entries(params).filter(([_, value]) => value !== null && value !== undefined)
+			) as Record<string, string | number | boolean> : undefined;
+			
 			const response = await apiClient.get<DataResponse<UserBetsData>>(
 				"/api/bets/my-bets",
-				params,
+				filteredParams,
 			);
 			if (!response.data) {
 				throw new Error("User bets data is missing in response");
