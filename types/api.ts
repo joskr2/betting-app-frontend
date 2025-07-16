@@ -91,16 +91,16 @@ export interface UserProfileData {
 export interface EventData {
 	id: number;
 	name: string;
-	teamA: string;
-	teamB: string;
-	teamAOdds: number;
-	teamBOdds: number;
-	eventDate: string;
+	team_a: string;
+	team_b: string;
+	team_a_odds: number;
+	team_b_odds: number;
+	event_date: string;
 	status: string;
-	canPlaceBets: boolean;
-	timeUntilEvent?: string;
-	totalBetsAmount?: number;
-	totalBetsCount?: number;
+	can_place_bets: boolean;
+	time_until_event?: string;
+	total_bets_amount?: number;
+	total_bets_count?: number;
 	category?: string;
 	statistics?: EventStatistics;
 }
@@ -126,7 +126,8 @@ export interface BetData {
 	selectedTeam: string;
 	amount: number;
 	odds: number;
-	potentialWin: number;
+	potentialWin?: number;
+	potential_win?: number;
 	status: string;
 	createdAt: string;
 	eventStatus?: string;

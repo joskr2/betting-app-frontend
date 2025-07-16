@@ -19,11 +19,11 @@ export const useEvents = (params?: EventsQuery) => {
 				Object.entries(params).filter(([_, value]) => value !== null && value !== undefined)
 			) as Record<string, string | number | boolean> : undefined;
 			
-			const response = await apiClient.get<DataResponse<EventData[]>>(
+			const response = await apiClient.get<DataResponse<{ events: EventData[] }>>(
 				"/api/events",
 				filteredParams,
 			);
-			return response.data || [];
+			return response.data?.events || [];
 		},
 		staleTime: 2 * 60 * 1000, // 2 minutes
 		refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes for live updates
@@ -63,11 +63,11 @@ export const usePopularEvents = (params?: PopularEventsQuery) => {
 				Object.entries(params).filter(([_, value]) => value !== null && value !== undefined)
 			) as Record<string, string | number | boolean> : undefined;
 			
-			const response = await apiClient.get<DataResponse<EventData[]>>(
+			const response = await apiClient.get<DataResponse<{ events: EventData[] }>>(
 				"/api/events/trending/popular",
 				filteredParams,
 			);
-			return response.data || [];
+			return response.data?.events || [];
 		},
 		staleTime: 5 * 60 * 1000, // 5 minutes
 		refetchInterval: 10 * 60 * 1000, // Refetch every 10 minutes

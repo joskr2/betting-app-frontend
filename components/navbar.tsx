@@ -2,7 +2,7 @@
 
 import { History, LogOut, Menu, TrendingUp, User, X } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,8 +19,13 @@ import { NavbarSkeleton } from "@/components/skeletons";
 export function Navbar() {
 	const { user, isAuthenticated, logout, isLoading } = useAuth();
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+	const [isHydrated, setIsHydrated] = useState(false);
 
-	if (isLoading) {
+	useEffect(() => {
+		setIsHydrated(true);
+	}, []);
+
+	if (!isHydrated || isLoading) {
 		return <NavbarSkeleton />;
 	}
 

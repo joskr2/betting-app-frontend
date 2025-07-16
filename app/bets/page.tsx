@@ -144,7 +144,7 @@ export default function BetsPage() {
 									{formatCurrency(
 										statistics?.currentPotentialWin ||
 											activeBets.reduce(
-												(sum, bet) => sum + bet.potentialWin,
+												(sum, bet) => sum + (bet.potentialWin || bet.potential_win || (bet.amount * bet.odds)),
 												0,
 											),
 									)}
@@ -260,7 +260,7 @@ export default function BetsPage() {
 													Ganancia Potencial
 												</p>
 												<p className="font-semibold text-green-600">
-													{formatCurrency(bet.potentialWin)}
+													{formatCurrency(bet.potentialWin || bet.potential_win || (bet.amount * bet.odds))}
 												</p>
 											</div>
 										</div>
@@ -339,7 +339,7 @@ export default function BetsPage() {
 												<p
 													className={`font-semibold ${bet.status === "Won" ? "text-green-600" : "text-gray-600"}`}
 												>
-													{formatCurrency(bet.potentialWin)}
+													{formatCurrency(bet.potentialWin || bet.potential_win || (bet.amount * bet.odds))}
 												</p>
 											</div>
 										</div>

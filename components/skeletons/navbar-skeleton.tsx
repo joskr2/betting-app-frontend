@@ -7,12 +7,12 @@ export function NavbarSkeleton() {
 			<div className="container mx-auto px-4">
 				<div className="flex justify-between items-center h-16">
 					{/* Logo */}
-					<div className="flex items-center space-x-2">
+					<a className="flex items-center space-x-2" href="/">
 						<TrendingUp className="h-6 w-6 text-blue-600" />
 						<span className="text-xl font-bold text-gray-900">
 							Sport Betting
 						</span>
-					</div>
+					</a>
 
 					{/* Desktop Navigation Skeleton */}
 					<div className="hidden md:flex items-center space-x-6">

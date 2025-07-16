@@ -4,7 +4,7 @@ import { Loader2, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
 
 export default function RegisterPage() {
 	const [formData, setFormData] = useState({
@@ -27,30 +28,70 @@ export default function RegisterPage() {
 	});
 	const { register } = useAuth();
 	const router = useRouter();
-	const [validationError, setValidationError] = useState("");
+	const [validationErrors, setValidationErrors] = useState<string[]>([]);
+	const { toast } = useToast();
+
+	// Client-side validation function
+	const validateForm = () => {
+		const errors: string[] = [];
+		
+		if (formData.password !== formData.confirmPassword) {
+			errors.push("Las contraseñas no coinciden");
+		}
+		
+		if (formData.password.length < 6) {
+			errors.push("La contraseña debe tener al menos 6 caracteres");
+		}
+		
+		if (!/[A-Z]/.test(formData.password)) {
+			errors.push("La contraseña debe contener al menos una letra mayúscula");
+		}
+		
+		if (!/[a-z]/.test(formData.password)) {
+			errors.push("La contraseña debe contener al menos una letra minúscula");
+		}
+		
+		if (!/[0-9]/.test(formData.password)) {
+			errors.push("La contraseña debe contener al menos un número");
+		}
+		
+		if (!formData.fullName.trim()) {
+			errors.push("El nombre completo es requerido");
+		}
+		
+		if (!formData.email.trim()) {
+			errors.push("El email es requerido");
+		}
+		
+		return errors;
+	};
+
+	// Real-time validation
+	useEffect(() => {
+		const errors = validateForm();
+		setValidationErrors(errors);
+	}, [formData]);
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setFormData((prev) => ({
 			...prev,
 			[e.target.name]: e.target.value,
 		}));
-		// Clear validation error when user starts typing
-		if (validationError) {
-			setValidationError("");
-		}
 	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		setValidationError("");
-
-		if (formData.password !== formData.confirmPassword) {
-			setValidationError("Las contraseñas no coinciden");
-			return;
-		}
-
-		if (formData.password.length < 6) {
-			setValidationError("La contraseña debe tener al menos 6 caracteres");
+		
+		// Check for validation errors
+		if (validationErrors.length > 0) {
+			// Show toast for each validation error
+			validationErrors.forEach(error => {
+				toast({
+					title: "Error de validación",
+					description: error,
+					variant: "destructive",
+				});
+			});
 			return;
 		}
 
@@ -61,8 +102,18 @@ export default function RegisterPage() {
 				full_name: formData.fullName,
 			});
 			router.push("/");
-		} catch (_err) {
-			// Error handling is now done through the ErrorHandler in the mutation
+		} catch (err: any) {
+			// Handle API validation errors
+			if (err?.response?.data?.validation_errors) {
+				const apiErrors = err.response.data.validation_errors;
+				apiErrors.forEach((error: string) => {
+					toast({
+						title: "Error de validación",
+						description: error,
+						variant: "destructive",
+					});
+				});
+			}
 		}
 	};
 
@@ -87,9 +138,15 @@ export default function RegisterPage() {
 					</CardHeader>
 					<CardContent>
 						<form onSubmit={handleSubmit} className="space-y-4">
-							{validationError && (
+							{validationErrors.length > 0 && (
 								<Alert variant="destructive">
-									<AlertDescription>{validationError}</AlertDescription>
+									<AlertDescription>
+										<ul className="list-disc pl-4 space-y-1">
+											{validationErrors.map((error, index) => (
+												<li key={index}>{error}</li>
+											))}
+										</ul>
+									</AlertDescription>
 								</Alert>
 							)}
 
@@ -148,7 +205,7 @@ export default function RegisterPage() {
 							<Button
 								type="submit"
 								className="w-full"
-								disabled={register.isPending}
+								disabled={register.isPending || validationErrors.length > 0}
 							>
 								{register.isPending && (
 									<Loader2 className="mr-2 h-4 w-4 animate-spin" />

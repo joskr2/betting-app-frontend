@@ -82,7 +82,7 @@ export const useCreateBet = () => {
 										activeBets: old.statistics.activeBets + 1,
 										totalAmountBet: old.statistics.totalAmountBet + data.amount,
 										currentPotentialWin:
-											old.statistics.currentPotentialWin + data.potentialWin,
+											old.statistics.currentPotentialWin + (data.potentialWin || 0),
 									}
 								: undefined,
 						};

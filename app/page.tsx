@@ -12,20 +12,9 @@ import { useBettingDashboard } from "@/hooks/use-bets";
 import { useEvents } from "@/hooks/use-events";
 import { useAuth } from "@/lib/auth";
 import { formatCurrency, formatDate, getTimeUntilEvent } from "@/lib/utils";
+import type { EventData } from "@/types/api";
 
-interface SelectedEvent {
-	id: number;
-	name: string;
-	teamA: string;
-	teamB: string;
-	teamAOdds: number;
-	teamBOdds: number;
-	eventDate: string;
-	status: string;
-	canPlaceBets: boolean;
-	timeUntilEvent?: string;
-	totalBetsAmount?: number;
-	totalBetsCount?: number;
+interface SelectedEvent extends EventData {
 	selectedTeam: string;
 	odds: number;
 }
@@ -171,9 +160,9 @@ export default function HomePage() {
 											<CardTitle className="text-lg">{event.name}</CardTitle>
 											<div className="flex items-center text-sm text-gray-500 mt-1">
 												<Calendar className="h-4 w-4 mr-1" />
-												{formatDate(event.eventDate)}
+												{formatDate(event.event_date)}
 												<Clock className="h-4 w-4 ml-3 mr-1" />
-												{getTimeUntilEvent(event.eventDate)}
+												{event.time_until_event || getTimeUntilEvent(event.event_date)}
 											</div>
 										</div>
 										<Badge
@@ -192,22 +181,22 @@ export default function HomePage() {
 										<div className="grid grid-cols-2 gap-4">
 											<div className="text-center p-4 bg-blue-50 rounded-lg">
 												<div className="font-semibold text-gray-900">
-													{event.teamA}
+													{event.team_a}
 												</div>
 												<div className="text-2xl font-bold text-blue-600 mt-1">
-													{event.teamAOdds.toFixed(2)}
-												</div>
+										{event.team_a_odds ? event.team_a_odds.toFixed(2) : 'N/A'}
+									</div>
 												<Button
 													size="sm"
 													className="mt-2 w-full"
 													onClick={() =>
 														setSelectedEvent({
 															...event,
-															selectedTeam: event.teamA,
-															odds: event.teamAOdds,
+															selectedTeam: event.team_a,
+															odds: event.team_a_odds,
 														})
 													}
-													disabled={!event.canPlaceBets}
+													disabled={!event.can_place_bets}
 												>
 													Apostar
 												</Button>
@@ -215,22 +204,22 @@ export default function HomePage() {
 
 											<div className="text-center p-4 bg-red-50 rounded-lg">
 												<div className="font-semibold text-gray-900">
-													{event.teamB}
+													{event.team_b}
 												</div>
 												<div className="text-2xl font-bold text-red-600 mt-1">
-													{event.teamBOdds.toFixed(2)}
-												</div>
+										{event.team_b_odds ? event.team_b_odds.toFixed(2) : 'N/A'}
+									</div>
 												<Button
 													size="sm"
 													className="mt-2 w-full"
 													onClick={() =>
 														setSelectedEvent({
 															...event,
-															selectedTeam: event.teamB,
-															odds: event.teamBOdds,
+															selectedTeam: event.team_b,
+															odds: event.team_b_odds,
 														})
 													}
-													disabled={!event.canPlaceBets}
+													disabled={!event.can_place_bets}
 												>
 													Apostar
 												</Button>
@@ -240,9 +229,9 @@ export default function HomePage() {
 										{/* Event Stats */}
 										<div className="flex justify-between text-sm text-gray-500 pt-2 border-t">
 											<span>
-												Total apostado: {formatCurrency(event.totalBetsAmount || 0)}
+												Total apostado: {formatCurrency(event.total_bets_amount || 0)}
 											</span>
-											<span>{event.totalBetsCount} apuestas</span>
+											<span>{event.total_bets_count || 0} apuestas</span>
 										</div>
 									</div>
 								</CardContent>

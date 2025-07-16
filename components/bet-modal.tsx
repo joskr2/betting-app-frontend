@@ -20,7 +20,7 @@ import { formatCurrency } from "@/lib/utils";
 import type { EventData } from "@/types/api";
 
 interface BetModalProps {
-	event: EventData & { selectedTeam: string };
+	event: EventData & { selectedTeam: string; odds: number };
 	onClose: () => void;
 	onBetPlaced: () => void;
 }
@@ -35,7 +35,7 @@ export function BetModal({ event, onClose, onBetPlaced }: BetModalProps) {
 
 	const betAmount = Number.parseFloat(amount) || 0;
 	const selectedOdds =
-		event.selectedTeam === event.teamA ? event.teamAOdds : event.teamBOdds;
+		event.selectedTeam === event.team_a ? event.team_a_odds : event.team_b_odds;
 	const potentialWin = betAmount * selectedOdds;
 	const profit = potentialWin - betAmount;
 
@@ -73,13 +73,13 @@ export function BetModal({ event, onClose, onBetPlaced }: BetModalProps) {
 		betAmount > 0 &&
 		betAmount <= (user?.balance || 0) &&
 		betAmount <= 10000 &&
-		event.canPlaceBets;
+		event.can_place_bets;
 
 	const getErrorMessage = () => {
 		if (betAmount <= 0) return "El monto debe ser mayor a 0";
 		if (betAmount > (user?.balance || 0)) return "Saldo insuficiente";
 		if (betAmount > 10000) return "El monto máximo por apuesta es $10,000";
-		if (!event.canPlaceBets) return "Este evento ya no acepta apuestas";
+		if (!event.can_place_bets) return "Este evento ya no acepta apuestas";
 		return "";
 	};
 
@@ -148,7 +148,7 @@ export function BetModal({ event, onClose, onBetPlaced }: BetModalProps) {
 							<div>
 								<span className="text-gray-500">Cuota:</span>
 								<p className="font-medium text-blue-600">
-									{selectedOdds.toFixed(2)}
+									{selectedOdds ? selectedOdds.toFixed(2) : 'N/A'}
 								</p>
 							</div>
 							<div>
@@ -210,7 +210,7 @@ export function BetModal({ event, onClose, onBetPlaced }: BetModalProps) {
 								</div>
 								<div className="flex justify-between">
 									<span>Cuota:</span>
-									<span className="font-medium">{selectedOdds.toFixed(2)}</span>
+									<span className="font-medium">{selectedOdds ? selectedOdds.toFixed(2) : 'N/A'}</span>
 								</div>
 								<div className="flex justify-between border-t pt-1">
 									<span>Ganancia potencial:</span>

@@ -15,6 +15,9 @@ export function formatCurrency(amount: number): string {
 
 export function formatDate(dateString: string): string {
 	const date = new Date(dateString);
+	if (Number.isNaN(date.getTime())) {
+		return "Fecha inválida";
+	}
 	return new Intl.DateTimeFormat("es-ES", {
 		year: "numeric",
 		month: "short",
@@ -27,6 +30,9 @@ export function formatDate(dateString: string): string {
 export function getTimeUntilEvent(eventDate: string): string {
 	const now = new Date();
 	const event = new Date(eventDate);
+	if (Number.isNaN(event.getTime())) {
+		return "Fecha inválida";
+	}
 	const diffInMs = event.getTime() - now.getTime();
 
 	if (diffInMs <= 0) {
